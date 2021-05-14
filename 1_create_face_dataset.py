@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import time
 import logging
-from joblib import Parallel, delayed
 from config import *
 
 
@@ -138,7 +137,41 @@ def process_video(video_list):
         logging.critical('Time used: {}'.format(ed_time - st_time))
 
 
+def generate_gaze_labels_second(video_list):
+    labels = []
+    preds = []
+    for video_file in video_list:
+        print(video_file)
+        if (label2_folder / (video_file.stem + '.txt')).exists():
+            cap = cv2.VideoCapture(str(video_file))
+            responses = parse_label(label2_folder / (video_file.stem + '.txt'), cap.get(cv2.CAP_PROP_FPS))
+            gaze_labels = np.load(str(Path.joinpath(dataset_folder, video_file.stem, 'gaze_labels.npy')))
+            gaze_labels_second = []
+            for frame in range(gaze_labels.shape[0]):
+                if frame >= responses[0][0]:
+                    q = [index for index, val in enumerate(responses) if frame >= val[0]]
+                    response_index = max(q)
+                    if responses[response_index][1] != 0:
+                        gaze_class = responses[response_index][2]
+                        gaze_labels_second.append(classes[gaze_class])
+                    else:
+                        gaze_labels_second.append(-2)
+                else:
+                    gaze_labels_second.append(-2)
+            gaze_labels_second = np.array(gaze_labels_second)
+            np.save(str(Path.joinpath(dataset_folder, video_file.stem, 'gaze_labels_second.npy')), gaze_labels_second)
+            idxs = np.where((gaze_labels >= 0) & (gaze_labels_second >= 0))
+            labels.extend(list(gaze_labels[idxs]))
+            preds.extend(list(gaze_labels_second[idxs]))
+        else:
+            print('no label')
+    import utils
+    Path('models', 'human').mkdir()
+    utils.calculate_confusion_matrix(labels, preds, Path('models', 'human') / 'conf.pdf')
+
+
 video_files = list(video_folder.glob("*.mp4"))
-logging.critical(f"{len(video_files)} videos in total.")
-dataset_folder.mkdir()
-process_video(video_files)
+# logging.critical(f"{len(video_files)} videos in total.")
+# dataset_folder.mkdir()
+# process_video(video_files)
+generate_gaze_labels_second(video_files)

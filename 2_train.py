@@ -9,7 +9,8 @@ import argparse
 from tqdm import tqdm
 from config import *
 from data import LookItDataset
-from model import GazeCodingModel
+from model import GazeCodingModel, GazeCodingModel3D
+import utils
 
 
 def check_all_same(seg):
@@ -58,7 +59,10 @@ parser.add_argument('--n_frames', '-n', type=int, default=10)
 parser.add_argument('--step', '-s', type=int, default=2)
 parser.add_argument('--add_box', default=False, action='store_true')
 parser.add_argument('--del_tran', default=False, action='store_true')
+parser.add_argument('--arch', type=str, default='2d')
 args = parser.parse_args()
+
+torch.multiprocessing.set_sharing_strategy('file_system')
 
 train_list, val_list = generate_train_test_list(args.n_frames, args.step, args.face, args.del_tran)
 save_folder = Path('models', args.model_name)
@@ -68,25 +72,25 @@ with open((save_folder / 'log.txt'), 'a+') as f:
     f.write(f'# Datapoint: Train {len(train_list)} Val {len(val_list)}\n')
 
 batch_size = 128
-n_batch_limit = {'train': 1000, 'valid': 500}
 datasets = {'train': LookItDataset(data_list=train_list, is_train=True),
             'valid': LookItDataset(data_list=val_list, is_train=False)}
 dataloaders = {phase: dataloader.DataLoader(datasets[phase], batch_size=batch_size, shuffle=True, num_workers=16)
                for phase in ['train', 'valid']}
 
-
-model = GazeCodingModel(device=args.device, n=args.n_frames//args.step, add_box=args.add_box).to(args.device)
+if args.arch == '3d':
+    model = GazeCodingModel3D(device=args.device, n=args.n_frames//args.step, add_box=args.add_box).to(args.device)
+else:
+    model = GazeCodingModel(device=args.device, n=args.n_frames//args.step, add_box=args.add_box).to(args.device)
 optimizer = optim.SGD(model.parameters(), lr=1e-2, momentum=0.9, weight_decay=1e-4)
-scheduler = lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[20, 30, 40], gamma=0.1)
+scheduler = lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[10, 15], gamma=0.1)
 criterion = nn.CrossEntropyLoss()
 
 print('Start Training ...')
 best_model_wts = copy.deepcopy(model.state_dict())
 last_model_wts = copy.deepcopy(model.state_dict())
 best_acc = 0.0
-last_acc = 0.0
 
-for epoch in range(50):
+for epoch in range(20):
     print(f'Epoch {epoch}:')
     for phase in ['train', 'valid']:
         if phase == 'train':
@@ -95,7 +99,6 @@ for epoch in range(50):
             model.eval()
         running_loss = 0.0
         running_corrects = 0
-        num_batches = 0
         num_datapoints = 0
 
         for data in tqdm(dataloaders[phase]):
@@ -111,9 +114,6 @@ for epoch in range(50):
             running_loss += loss.item() * labels.size(0)
             num_datapoints += labels.size(0)
             running_corrects += torch.sum(torch.eq(preds, labels)).item()
-            num_batches += 1
-            if num_batches == n_batch_limit[phase]:
-                break
 
         epoch_loss = running_loss / num_datapoints
         epoch_acc = running_corrects / num_datapoints
@@ -127,17 +127,45 @@ for epoch in range(50):
             print('Learning rate:', lr)
 
         if phase == 'valid':
-            last_acc = epoch_acc
             last_model_wts = copy.deepcopy(model.state_dict())
-            torch.save(best_model_wts, (save_folder / 'weights_last.pt'))
+            torch.save(last_model_wts, (save_folder / 'weights_last.pt'))
             if epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
                 torch.save(best_model_wts, (save_folder / 'weights_best.pt'))
 
 print('Done!')
+
+print('Evaluating last model...')
+model.load_state_dict(torch.load((save_folder / 'weights_last.pt')))
+model.eval()
+gaze_label = []
+gaze_pred = []
+for data in tqdm(dataloaders['valid']):
+    labels = data['label']
+    gaze_label.extend(list(labels))
+    with torch.set_grad_enabled(False):
+        outputs = model(data)
+        _, preds = torch.max(outputs, 1)
+    gaze_pred.extend(list(preds.cpu()))
+last_acc = utils.calculate_confusion_matrix(gaze_label, gaze_pred, (save_folder / 'last_conf.pdf'))
+
+print('Evaluating best model...')
+model.load_state_dict(torch.load((save_folder / 'weights_best.pt')))
+model.eval()
+gaze_label = []
+gaze_pred = []
+for data in tqdm(dataloaders['valid']):
+    labels = data['label']
+    gaze_label.extend(list(labels))
+    with torch.set_grad_enabled(False):
+        outputs = model(data)
+        _, preds = torch.max(outputs, 1)
+    gaze_pred.extend(list(preds.cpu()))
+best_acc = utils.calculate_confusion_matrix(gaze_label, gaze_pred, (save_folder / 'best_conf.pdf'))
+
 print(f'Best Val Acc: {best_acc:.4f}')
-print(f'Best Val Acc: {best_acc:.4f}')
+print(f'Last Val Acc: {last_acc:.4f}')
 with open((save_folder / 'log.txt'), 'a+') as f:
     f.write(f'Best Val Acc: {best_acc:.4f}\n')
     f.write(f'Last Val Acc: {last_acc:.4f}\n')
