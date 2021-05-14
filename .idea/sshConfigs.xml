@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig authType="PASSWORD" host="login.csail.mit.edu" id="768f38a4-5944-48c0-9b3f-0bbdd4da2bc1" port="22" nameFormat="DESCRIPTIVE" username="pengcao" />
+    </configs>
+  </component>
+</project>

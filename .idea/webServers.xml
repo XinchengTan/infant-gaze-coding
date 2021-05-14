@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="0348a3e7-8d79-4eff-86bb-f1d32e050123" name="csail">
+        <fileTransfer rootFolder="/afs/csail.mit.edu/u/p/pengcao" accessType="SFTP" host="login.csail.mit.edu" port="22" sshConfigId="768f38a4-5944-48c0-9b3f-0bbdd4da2bc1" sshConfig="pengcao@login.csail.mit.edu:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
