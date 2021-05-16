@@ -40,7 +40,7 @@ model.to(args.device)
 model.eval()
 
 video_files = list(video_folder.glob("*.mp4"))
-video_files = [Path('41756b66-82f6-4985-9188-892846f4fc6a.mp4')]
+#video_files = [Path('41756b66-82f6-4985-9188-892846f4fc6a.mp4')]
 for video_file in video_files:
     print(video_file.stem)
     files = list((dataset_folder / video_file.stem / 'img').glob(f'*.png'))
