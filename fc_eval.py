@@ -1,10 +1,12 @@
 import os
 
 import numpy as np
-import torch
 from tqdm import tqdm
+from torch.autograd import Variable
+from torchvision import datasets
 
 from config import multi_face_folder
+from data import *
 from utils import confusion_mat
 
 
@@ -63,12 +65,24 @@ def evaluate(args, model, dataloader, criterion, return_prob=False, is_labelled=
   return epoch_loss, epoch_top1_acc, pred_labels, pred_probs, target_labels
 
 
-# TODO: predict on a subset
-def predict_on_minibatch(args, test_imgs, model, criterion):
-  # apply test data transform
+# TODO: This is untested! Predict on a smaller subset of images than batch size
+def predict_on_minibatch(args, inputsize, test_imgs, model):
+  model.eval()
+  pred_labels, pred_probs = [], []
 
-  # predict via model(loaded_test_img)  -- TODO: verify len(test_imgs) can < batch size
-  pass
+  # Apply test data transform
+  transform = get_fc_data_transforms(args, inputsize, 'test')['test']
+
+  for img in test_imgs:
+    test_img = Variable(transform(img).float(), requires_grad=True)
+    test_img = test_img.unsqueeze(0)  # for vgg, may not be needed for resnet. TODO: double check
+    test_img = test_img.to(args.device)
+    test_out = model(test_img)
+    _, preds = torch.max(test_out, 1)
+    pred_labels.append(preds)  # unpack?
+    pred_probs.append(test_out)  # unpack?
+
+  return pred_labels, pred_probs
 
 
 def predict_on_test(args, model, dataloaders, criterion):

@@ -56,7 +56,15 @@ class LookItDataset:
         }
 
 
-def get_fc_data_transforms(args, input_size):
+def get_fc_data_transforms(args, input_size, dt_key=None):
+
+  if dt_key is not None and dt_key != 'train':
+    return {dt_key: transforms.Compose([
+      transforms.Resize(input_size),
+      transforms.CenterCrop(input_size),
+      transforms.ToTensor(),
+      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])}
 
   class AddGaussianNoise(object):
     def __init__(self, mean=0., std=1.):
