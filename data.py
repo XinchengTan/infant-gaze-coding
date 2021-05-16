@@ -84,7 +84,7 @@ def get_fc_data_transforms(args, input_size, dt_key=None):
   else:
     aug_list.append(transforms.Resize(input_size))
   if args.rotation:
-    aug_list.append(transforms.RandomRotation(20, resample=Image.BILINEAR))
+    aug_list.append(transforms.RandomRotation(20))
   if args.color:
     aug_list.append(transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05))
   if args.hor_flip:
@@ -109,12 +109,6 @@ def get_fc_data_transforms(args, input_size, dt_key=None):
       transforms.ToTensor(),
       transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
-    'test': transforms.Compose([
-      transforms.Resize(input_size),
-      transforms.CenterCrop(input_size),
-      transforms.ToTensor(),
-      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
   }
   return data_transforms
 
@@ -125,11 +119,11 @@ def get_dataset_dataloaders(args, input_size, batch_size, shuffle=True, num_work
   # Create training and validation datasets
   image_datasets = {'train': datasets.ImageFolder(os.path.join(face_data_folder, 'train'), data_transforms['train']),
                     'val': datasets.ImageFolder(os.path.join(face_data_folder, 'val'), data_transforms['val']),
-                    'test': datasets.ImageFolder(os.path.join(face_data_folder, 'test'), data_transforms['test']),
                     }
   # print('\n\nImageFolder class to idx: ', image_datasets['val'].class_to_idx)
   # infant - 0, target - 1
-  # print("validation samples:", image_datasets['val'].samples)
+  print("# train samples:", len(image_datasets['train']))
+  print("# validation samples:", len(image_datasets['val']))
 
   # Create training and validation dataloaders, never shuffle val and test set
   dataloaders_dict = {x: dataloader.DataLoader(image_datasets[x], batch_size=batch_size,

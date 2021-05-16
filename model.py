@@ -63,28 +63,28 @@ class GazeCodingModel(nn.Module):
 
 
 class Encoder_img_3d(nn.Module):
-    def __init__(self, in_channel=3, out_channel=3):
+    def __init__(self, in_channel=3):
         super().__init__()
-        self.conv1_1 = nn.Conv3d(in_channel, 8, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2))
-        self.conv1_2 = nn.Conv3d(8, 16, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
-        self.conv2_1 = nn.Conv3d(16, 32, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2))
-        self.conv2_2 = nn.Conv3d(32, 32, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
-        self.conv3_1 = nn.Conv3d(32, 64, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2))
-        self.conv3_2 = nn.Conv3d(64, 64, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
-        self.conv4_1 = nn.Conv3d(64, 128, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2))
-        self.conv4_2 = nn.Conv3d(128, 128, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
-        self.conv5_1 = nn.Conv3d(128, 256, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2))
-        self.conv5_2 = nn.Conv3d(256, 256, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
-        self.bn1_1 = nn.BatchNorm3d(8)
-        self.bn1_2 = nn.BatchNorm3d(16)
-        self.bn2_1 = nn.BatchNorm3d(32)
-        self.bn2_2 = nn.BatchNorm3d(32)
-        self.bn3_1 = nn.BatchNorm3d(64)
-        self.bn3_2 = nn.BatchNorm3d(64)
-        self.bn4_1 = nn.BatchNorm3d(128)
-        self.bn4_2 = nn.BatchNorm3d(128)
-        self.bn5_1 = nn.BatchNorm3d(256)
-        self.bn5_2 = nn.BatchNorm3d(256)
+        self.conv1_1 = nn.Conv3d(in_channel, 16, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2))
+        self.conv1_2 = nn.Conv3d(16, 32, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
+        self.conv2_1 = nn.Conv3d(32, 64, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2))
+        self.conv2_2 = nn.Conv3d(64, 64, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
+        self.conv3_1 = nn.Conv3d(64, 128, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2))
+        self.conv3_2 = nn.Conv3d(128, 128, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
+        self.conv4_1 = nn.Conv3d(128, 256, kernel_size=(3, 5, 5), stride=(2, 2, 2), padding=(1, 2, 2))
+        self.conv4_2 = nn.Conv3d(256, 256, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
+        self.conv5_1 = nn.Conv3d(256, 512, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2))
+        self.conv5_2 = nn.Conv3d(512, 512, kernel_size=(3, 5, 5), stride=(1, 1, 1), padding=(1, 2, 2))
+        self.bn1_1 = nn.BatchNorm3d(16)
+        self.bn1_2 = nn.BatchNorm3d(32)
+        self.bn2_1 = nn.BatchNorm3d(64)
+        self.bn2_2 = nn.BatchNorm3d(64)
+        self.bn3_1 = nn.BatchNorm3d(128)
+        self.bn3_2 = nn.BatchNorm3d(128)
+        self.bn4_1 = nn.BatchNorm3d(256)
+        self.bn4_2 = nn.BatchNorm3d(256)
+        self.bn5_1 = nn.BatchNorm3d(512)
+        self.bn5_2 = nn.BatchNorm3d(512)
         self.pool = nn.AdaptiveAvgPool3d((1, 1, 1))
 
     def forward(self, x):
@@ -107,9 +107,9 @@ class Encoder_img_3d(nn.Module):
 class Encoder_box_seq(nn.Module):
     def __init__(self, n):
         super().__init__()
-        self.fc1 = nn.Linear(5*n, 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.bn = nn.BatchNorm1d(256)
+        self.fc1 = nn.Linear(5*n, 512)
+        self.fc2 = nn.Linear(512, 512)
+        self.bn = nn.BatchNorm1d(512)
         self.dropout = nn.Dropout(0.2)
 
     def forward(self, x):
@@ -128,7 +128,7 @@ class GazeCodingModel3D(nn.Module):
         self.add_box = add_box
         self.encoder_img = Encoder_img_3d()
         self.encoder_box = Encoder_box_seq(n)
-        self.predictor = Predictor_fc(1, add_box)
+        self.predictor = Predictor_fc(2, add_box)
 
     def forward(self, data):
         imgs = data['imgs'].to(self.device)  # bs x n x 3 x 100 x 100

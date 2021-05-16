@@ -57,8 +57,8 @@ def evaluate(args, model, dataloader, criterion, return_prob=False, is_labelled=
 
   # Show confusion matrix
   if generate_labels and is_labelled:
-    print("pred labels:", np.shape(pred_labels), pred_labels)
-    print("target labels:", np.shape(target_labels), target_labels)
+    #print("pred labels:", np.shape(pred_labels), pred_labels)
+    #print("target labels:", np.shape(target_labels), target_labels)
     cm = confusion_mat(target_labels, pred_labels, classes=['infant', 'others'])
     print("Confusion matrix:\n", cm)
 

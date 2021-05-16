@@ -1,11 +1,5 @@
 import copy
-import os
-
 import argparse
-import torch
-
-from config import *
-from data import *
 from fc_model import *
 from fc_eval import *
 from utils import *
@@ -29,8 +23,8 @@ def get_args():
   # learning rate
   parser.add_argument('--lr', default=0.001, type=float)
   # batch size
-  parser.add_argument('--bs', default=4, type=int)
-  # number of epochs, epochs=0 for evaluation only
+  parser.add_argument('--bs', default=8, type=int)
+  # number of epochs, epochs=0 for evalusation only
   parser.add_argument('--epochs', default=20, type=int)
   # schedule
   parser.add_argument('--scheduler', default='none', type=str)  # exp, ms
@@ -50,15 +44,11 @@ def get_args():
   return args
 
 
-def train_face_classifier(args, model, dataloaders, criterion, optimizer, scheduler, save_dir=None, save_all_epochs=False,
-                          plot_lr_curve=False):
+def train_face_classifier(args, model, dataloaders, criterion, optimizer, scheduler, save_dir=None, plot_lr_curve=False):
   since = time.time()
-
-  val_acc_history = []
-  train_acc_history = []
-
-  best_model_wts = copy.deepcopy(model.state_dict())
   best_acc = 0.0
+  train_acc_history = []
+  val_acc_history = []
 
   num_epochs = args.epochs
   for epoch in range(num_epochs):
@@ -74,6 +64,7 @@ def train_face_classifier(args, model, dataloaders, criterion, optimizer, schedu
 
       running_loss = 0.0
       running_corrects = 0
+      num_samples = 0
 
       # Iterate over data
       for inputs, labels in tqdm(dataloaders[phase]):
@@ -102,40 +93,30 @@ def train_face_classifier(args, model, dataloaders, criterion, optimizer, schedu
 
         # statistics
         running_loss += loss.item() * inputs.size(0)
-        running_corrects += torch.sum(preds == labels.data)
+        running_corrects += torch.sum(torch.eq(preds, labels)).item()
+        num_samples += inputs.size(0)
 
-      if phase == 'train':
-        if scheduler is not None:
-          scheduler.step()
-      epoch_loss = running_loss / len(dataloaders[phase].dataset)
-      epoch_acc = running_corrects.double() / len(dataloaders[phase].dataset)
+      epoch_loss = running_loss / num_samples
+      epoch_acc = running_corrects / num_samples
+      print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+      with open((save_dir / 'log.txt'), 'a+') as f:
+        f.write(f'Epoch{epoch} {phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}\n')
 
-      print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+      if phase == 'train' and scheduler is not None:
+        scheduler.step()
+        lr = scheduler.get_last_lr()[0]
+        print('Learning rate:', lr)
 
-      if phase == 'train':
-        if scheduler is not None:
-          lr = scheduler.get_last_lr()[0]
-        else:
-          lr = args.lr
-        print('learning rate:', lr)
-
-      # deep copy the model
-      if phase == 'val' and epoch_acc > best_acc:
-        best_acc = epoch_acc
-        best_model_wts = copy.deepcopy(model.state_dict())
-        torch.save(best_model_wts, os.path.join(save_dir, 'weights_best.pt'))
       if phase == 'val':
         val_acc_history.append(epoch_acc)
-        with open(os.path.join(save_dir, f'log.txt'), 'a+') as f:
-          f.write(f"Epoch: {epoch}, Val Acc: {epoch_acc}, Best: {best_acc}\n")
+        last_model_wts = copy.deepcopy(model.state_dict())
+        torch.save(last_model_wts, (save_dir / 'weights_last.pt'))
+        if epoch_acc > best_acc:
+          best_acc = epoch_acc
+          best_model_wts = copy.deepcopy(model.state_dict())
+          torch.save(best_model_wts, (save_dir / 'weights_best.pt'))
       else:
         train_acc_history.append(epoch_acc)
-        with open(os.path.join(save_dir, f'log.txt'), 'a+') as f:
-          f.write(f"Epoch: {epoch}, Train Acc: {epoch_acc}\n")
-      if save_all_epochs:
-        torch.save(model.state_dict(), os.path.join(save_dir, f'weights_{epoch}.pt'))
-
-    print()
 
   if plot_lr_curve:
     plot_learning_curve(train_acc_history, val_acc_history, save_dir=save_dir)
@@ -143,10 +124,6 @@ def train_face_classifier(args, model, dataloaders, criterion, optimizer, schedu
   time_elapsed = time.time() - since
   print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
   print('Best val Acc: {:4f}'.format(best_acc))
-
-  # save and load best model weights
-  model.load_state_dict(best_model_wts)
-  return model, val_acc_history
 
 
 if __name__ == "__main__":
@@ -179,7 +156,7 @@ if __name__ == "__main__":
   resume_from = None if args.resume == 'none' else args.resume
 
   # Directory to save weights to
-  save_dir = "weights"
+  save_dir = "./models/weights"
   save_dir += "-A"
   if args.rotation:
     save_dir += "r"
@@ -219,12 +196,10 @@ if __name__ == "__main__":
   optimizer, scheduler = make_optimizer_and_scheduler(args, model)
 
   # Train the model!
-  trained_model, validation_history = train_face_classifier(args=args, model=model, dataloaders=dataloaders,
-                                                            criterion=criterion, optimizer=optimizer,
-                                                            scheduler=scheduler, save_dir=save_dir,
-                                                            save_all_epochs=save_all_epochs,
-                                                            plot_lr_curve=args.plot_lrcv)
+  train_face_classifier(args=args, model=model, dataloaders=dataloaders, criterion=criterion, optimizer=optimizer,
+                        scheduler=scheduler, save_dir=Path(save_dir), plot_lr_curve=args.plot_lrcv)
 
+  model.load_state_dict(torch.load((Path(save_dir) / 'weights_last.pt')))
   generate_train_labels = False
   generate_val_labels = True
   if args.eval_train:
@@ -234,10 +209,9 @@ if __name__ == "__main__":
     print(f'train_loss: {train_loss:.4f}', f'train_top1: {train_top1:.4f}')
 
   val_loss, val_top1, val_labels, val_probs, val_target_labels = evaluate(args, model, dataloaders['val'], criterion,
-                                                                          return_prob=True, is_labelled=True,
+                                                                          return_prob=False, is_labelled=True,
                                                                           generate_labels=generate_val_labels)
 
   err_idxs = np.where(np.array(val_labels) != np.array(val_target_labels))[0]
   print_dataImg_name(dataloaders, 'val', err_idxs)
   print(f'val_loss: {val_loss:.4f}', f'val_top1: {val_top1:.4f}')
-

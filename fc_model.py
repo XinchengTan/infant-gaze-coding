@@ -80,7 +80,7 @@ def make_optimizer_and_scheduler(args, model):
   if args.scheduler == 'exp':
     scheduler = lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.95)
   elif args.scheduler == 'ms':
-    scheduler = lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[20, 30, 40], gamma=0.1)
+    scheduler = lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[10, 15], gamma=0.1)
   elif args.scheduler == 'none':
     scheduler = None
   else:
