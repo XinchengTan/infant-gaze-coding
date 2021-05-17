@@ -33,7 +33,7 @@ def generate_train_test_list(n_frames, step, face_label_name, eliminate_transiti
             face_label_seg = face_labels[frame_number:frame_number + n_frames]
             if len(gaze_label_seg) != n_frames:
                 break
-            if sum(gaze_label_seg < 0):
+            if sum(face_label_seg < 0):
                 continue
             if not eliminate_transition or check_all_same(gaze_label_seg):
                 class_seg = gaze_label_seg[n_frames // 2]

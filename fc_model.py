@@ -93,7 +93,7 @@ def init_face_classifier(args, model_name, num_classes=2, resume_from=None):
 
   if resume_from is not None:
     print("Loading weights from %s" % resume_from)
-    model.load_state_dict(torch.load(resume_from))
+    model.load_state_dict(torch.load(resume_from, map_location=args.device))
 
   return model, input_size
 

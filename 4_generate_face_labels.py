@@ -1,10 +1,12 @@
 from fc_model import *
+from fc_eval import *
+from utils import *
 from data import *
 import argparse
 from PIL import Image
 from tqdm import tqdm
 
-model_path = 'models/best_model/weights_last.pt'
+model_path = 'models/weights-Arohe-Mvgg16-D0-Osgd-Snone-L0.001-B8/weights_last.pt'
 
 val_infant_files = [f.stem for f in (face_data_folder / 'val' / 'infant').glob('*.png')]
 val_others_files = [f.stem for f in (face_data_folder / 'val' / 'others').glob('*.png')]
@@ -36,11 +38,20 @@ args = parser.parse_args()
 
 model, input_size = init_face_classifier(args, model_name=args.model, num_classes=2, resume_from=model_path)
 data_transforms = get_fc_data_transforms(args, input_size)
+dataloaders = get_dataset_dataloaders(args, input_size, 64, False)
+criterion = get_loss()
 model.to(args.device)
-model.eval()
+
+val_loss, val_top1, val_labels, val_probs, val_target_labels = evaluate(args, model, dataloaders['val'], criterion,
+                                                                        return_prob=False, is_labelled=True, generate_labels=True)
+
+
+print("\n[val] Failed images:")
+err_idxs = np.where(np.array(val_labels) != np.array(val_target_labels))[0]
+print_dataImg_name(dataloaders, 'val', err_idxs)
+print(f'val_loss: {val_loss:.4f}', f'val_top1: {val_top1:.4f}')
 
 video_files = list(video_folder.glob("*.mp4"))
-#video_files = [Path('41756b66-82f6-4985-9188-892846f4fc6a.mp4')]
 for video_file in video_files:
     print(video_file.stem)
     files = list((dataset_folder / video_file.stem / 'img').glob(f'*.png'))
@@ -51,8 +62,6 @@ for video_file in video_files:
     face_labels_fc = []
     hor, ver = 0.5, 1
     for frame in tqdm(range(face_labels.shape[0])):
-        #print('frame', frame)
-        #print(hor, ver)
         if face_labels[frame] < 0:
             face_labels_fc.append(face_labels[frame])
         else:
@@ -67,6 +76,7 @@ for video_file in video_files:
                 idx += 1
             centers = np.stack(centers)
             faces = torch.stack(faces).to(args.device)
+            model.eval()
             output = model(faces)
             _, preds = torch.max(output, 1)
             preds = preds.cpu().numpy()
@@ -76,7 +86,6 @@ for video_file in video_files:
                 face_labels_fc.append(-1)
             else:
                 dis = np.sqrt((centers[:, 0] - hor) ** 2 + (centers[:, 1] - ver) ** 2)
-                #print(dis)
                 i = np.argmin(dis)
                 face_labels_fc.append(idxs[i])
                 hor, ver = centers[i]

@@ -80,5 +80,4 @@ def print_dataImg_name(dataloaders, dl_key, selected_idxs=None):
   else:
     for i, tup in enumerate(dataset.samples):
       if i in selected_idxs:
-        print(tup[0].strip(fp_prefix))
-
+        print(Path(tup[0]).parent.stem, Path(tup[0]).stem)
