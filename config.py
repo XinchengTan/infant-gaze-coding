@@ -5,8 +5,8 @@ classes = {'away': 0, 'left': 1, 'right': 2}
 face_model_file = Path("models", "face_model.caffemodel")
 config_file = Path("models", "config.prototxt")
 
-#project_data_dir = Path('/home/ubuntu/LookIt')
-project_data_dir = Path('/Users/Peng/LookIt')
+project_data_dir = Path('/home/ubuntu/LookIt')
+#project_data_dir = Path('/Users/Peng/LookIt')
 #project_data_dir = Path('/data/netmit/RadarFS/Peng/LookIt')
 raw_folder = project_data_dir / 'LookIt_raw'
 database = project_data_dir

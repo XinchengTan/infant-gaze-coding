@@ -14,13 +14,43 @@ def init_face_classifier(args, model_name, num_classes=2, resume_from=None):
   input_size = 100
   model = None
 
-  if model_name == 'vgg16':
+  if model_name == 'vgg11':
+    model = models.vgg11(num_classes=num_classes)
+    num_ftrs = model.classifier[6].in_features
+    model.classifier[6] = nn.Linear(num_ftrs, num_classes)
+
+  elif model_name == 'vgg11_bn':
+    model = models.vgg11_bn(num_classes=num_classes)
+    num_ftrs = model.classifier[6].in_features
+    model.classifier[6] = nn.Linear(num_ftrs, num_classes)
+
+  elif model_name == 'vgg13':
+    model = models.vgg13(num_classes=num_classes)
+    num_ftrs = model.classifier[6].in_features
+    model.classifier[6] = nn.Linear(num_ftrs, num_classes)
+
+  elif model_name == 'vgg13_bn':
+    model = models.vgg13_bn(num_classes=num_classes)
+    num_ftrs = model.classifier[6].in_features
+    model.classifier[6] = nn.Linear(num_ftrs, num_classes)
+
+  elif model_name == 'vgg16':
     model = models.vgg16(num_classes=num_classes)
     num_ftrs = model.classifier[6].in_features
     model.classifier[6] = nn.Linear(num_ftrs, num_classes)
 
   elif model_name == 'vgg16_bn':
     model = models.vgg16_bn(num_classes=num_classes)
+    num_ftrs = model.classifier[6].in_features
+    model.classifier[6] = nn.Linear(num_ftrs, num_classes)
+
+  elif model_name == 'vgg19':
+    model = models.vgg19(num_classes=num_classes)
+    num_ftrs = model.classifier[6].in_features
+    model.classifier[6] = nn.Linear(num_ftrs, num_classes)
+
+  elif model_name == 'vgg19_bn':
+    model = models.vgg19_bn(num_classes=num_classes)
     num_ftrs = model.classifier[6].in_features
     model.classifier[6] = nn.Linear(num_ftrs, num_classes)
 
@@ -37,6 +67,22 @@ def init_face_classifier(args, model_name, num_classes=2, resume_from=None):
     """ Resnet34
     """
     model = models.resnet34(num_classes=num_classes)
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, num_classes)
+    if args.dropout > 0:
+      model.fc = nn.Sequential(nn.Dropout(args.dropout), nn.Linear(num_ftrs, num_classes))
+
+  elif model_name == "resnet50":
+    """ Resnet50
+    """
+    model = models.resnet50(num_classes=num_classes)
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, num_classes)
+    if args.dropout > 0:
+      model.fc = nn.Sequential(nn.Dropout(args.dropout), nn.Linear(num_ftrs, num_classes))
+
+  elif model_name == "wide_resnet":
+    model = models.wide_resnet50_2(num_classes=num_classes)
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, num_classes)
     if args.dropout > 0:
@@ -80,7 +126,7 @@ def make_optimizer_and_scheduler(args, model):
   if args.scheduler == 'exp':
     scheduler = lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.95)
   elif args.scheduler == 'ms':
-    scheduler = lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[10, 15], gamma=0.1)
+    scheduler = lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[10, 20], gamma=0.1)
   elif args.scheduler == 'none':
     scheduler = None
   else:

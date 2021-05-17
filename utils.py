@@ -59,14 +59,16 @@ def confusion_mat(targets, preds, classes, normalize=False, plot=False, title="C
   return cm
 
 
-def plot_learning_curve(train_accs, val_accs, save_dir):
-  epochs = np.arange(1, len(train_accs) + 1)
-  plt.plot(epochs, train_accs, label="Training Accuracy")
-  plt.plot(epochs, val_accs, label="Validation Accuracy")
+def plot_learning_curve(train_perfs, val_perfs, save_dir, isLoss=False):
+  epochs = np.arange(1, len(train_perfs) + 1)
+  plt.plot(epochs, train_perfs, label="Training set")
+  plt.plot(epochs, val_perfs, label="Validation set")
   plt.xlabel("Epochs")
-  plt.ylabel("Accuracy")
+  metric_name = "Loss" if isLoss else "Accuracy"
+  plt.ylabel(metric_name)
+  plt.title(metric_name, fontsize=16, y=1.002)
   plt.legend()
-  plt.savefig(os.path.join(save_dir, 'learning_curve.png'))
+  plt.savefig(os.path.join(save_dir, 'learning_curve_%s.png' % metric_name))
 
 
 def print_dataImg_name(dataloaders, dl_key, selected_idxs=None):
