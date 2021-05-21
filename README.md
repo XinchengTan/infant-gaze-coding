@@ -1,5 +1,5 @@
 # Automated Gaze Coding for Infant Videos
-IMPORTANT NOTE: in our submitted report, we claimed the size of our manually labeled data subset for the infant classifier is 300, which is not consistent with the number of failure cases and the accuracy. Actually, it should be 300 for each class, i.e. 600 in total, thus 10 failure cases result in an accuracy of 95% in the 200-image test set. We are sorry for the confusion it may cause.
+IMPORTANT NOTE: in our submitted report, we claimed the size of our manually labeled data subset for the infant classifier is 300, which is not consistent with the number of failure cases and the accuracy. Actually, it should be 300 for each class, i.e. 600 in total, thus 10 failure cases result in an accuracy of 95% on the 200-image test set. We are sorry for the confusion it may cause.
 
 This is the code base of our final project for course MIT 6.869.
 
